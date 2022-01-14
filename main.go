@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"embed"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
@@ -60,12 +61,21 @@ func main() {
 		return fiber.ErrUpgradeRequired
 	})
 
-	app.Get("/ws/:id", websocket.New(func(c *websocket.Conn) {
+	app.Get("/ws", websocket.New(func(c *websocket.Conn) {
 		var messageType int = 1
 		var message []byte
 		var err error
 
-		cmd := exec.Command("journalctl", "-b", "-u", fmt.Sprintf("%s.service", c.Params("id")), "-f", "-n", "5", "-o", "json")
+		services := []string{}
+		json.Unmarshal([]byte(c.Query("services")), &services)
+
+		args := []string{"-b"}
+		for _, service := range services {
+			args = append(args, "-u", service+".service")
+		}
+		args = append(args, "-f", "-n", "100", "-o", "json")
+
+		cmd := exec.Command("journalctl", args...)
 		stdout, _ := cmd.StdoutPipe()
 		cmd.Start()
 
