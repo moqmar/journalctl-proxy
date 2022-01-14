@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"io/fs"
 	"log"
@@ -23,8 +24,11 @@ var assets embed.FS
 
 func main() {
 	var port int
+	var username, password string
 
 	flag.IntVar(&port, "p", 8000, "Server port number")
+	flag.StringVar(&username, "au", "", "Username for basic auth")
+	flag.StringVar(&password, "ap", "", "Password for basic auth")
 	flag.Parse()
 
 	app := fiber.New(fiber.Config{
@@ -33,6 +37,15 @@ func main() {
 
 	app.Use(recover.New())
 	app.Use(logger.New())
+
+	if username != "" || password != "" {
+		app.Use(basicauth.New(basicauth.Config{
+			Users: map[string]string{
+				username: password,
+			},
+			Realm: "journalctl proxy",
+		}))
+	}
 
 	assetsFS, err := fs.Sub(assets, "assets")
 	if err != nil {
