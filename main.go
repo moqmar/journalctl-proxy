@@ -2,9 +2,13 @@ package main
 
 import (
 	"bufio"
+	"embed"
 	"flag"
 	"fmt"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
+	"io/fs"
 	"log"
+	"net/http"
 	"os/exec"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,6 +16,9 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/websocket/v2"
 )
+
+//go:embed assets
+var assets embed.FS
 
 func main() {
 	var port int
@@ -26,15 +33,14 @@ func main() {
 	app.Use(recover.New())
 	app.Use(logger.New())
 
-	app.Get("/", func(c *fiber.Ctx) error {
-		data, err := Asset("assets/index.html")
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		c.Type("html", "utf-8")
-		return c.SendString(string(data))
-	})
+	assetsFS, err := fs.Sub(assets, "assets")
+	if err != nil {
+		log.Fatal(err)
+	}
+	app.Use(filesystem.New(filesystem.Config{
+		Root:  http.FS(assetsFS),
+		Index: "index.html",
+	}))
 
 	app.Get("/list-services", func(c *fiber.Ctx) error {
 		out, err := exec.Command("systemctl", "list-units", "--type=service", "--state=running", "--no-pager").Output()
