@@ -6,17 +6,17 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/websocket/v2"
 	"io/fs"
 	"log"
 	"net/http"
 	"os/exec"
-
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/gofiber/websocket/v2"
+	"strings"
 )
 
 //go:embed assets
@@ -25,10 +25,12 @@ var assets embed.FS
 func main() {
 	var port int
 	var username, password string
+	var docker bool
 
 	flag.IntVar(&port, "p", 8000, "Server port number")
 	flag.StringVar(&username, "au", "", "Username for basic auth")
 	flag.StringVar(&password, "ap", "", "Password for basic auth")
+	flag.BoolVar(&docker, "docker", false, "Add container names for Docker scopes (with journald logging driver)")
 	flag.Parse()
 
 	app := fiber.New(fiber.Config{
@@ -63,7 +65,25 @@ func main() {
 			fmt.Printf("%s", err)
 		}
 
-		return c.SendString(string(out[:]))
+		outStr := string(out[:])
+
+		if docker {
+			dockerOut, err := exec.Command("docker", "ps", "-a", "--no-trunc", "--format", `"{{.ID}}":"{{.Names}}",`).Output()
+			if err != nil {
+				fmt.Printf("%s", err)
+			} else {
+				dockerLookup := map[string]string{}
+				json.Unmarshal([]byte(`{`+string(dockerOut)+`"":""}`), &dockerLookup)
+
+				for id, name := range dockerLookup {
+					if id != "" {
+						outStr = id + ".docker human-name=" + name + ".docker\n" + outStr
+					}
+				}
+			}
+		}
+
+		return c.SendString(outStr)
 	})
 
 	app.Use("/ws", func(c *fiber.Ctx) error {
@@ -84,9 +104,16 @@ func main() {
 
 		args := []string{"-b"}
 		for _, service := range services {
-			args = append(args, "-u", service+".service")
+			if docker && strings.HasSuffix(service, ".docker") {
+				args = append(args, "CONTAINER_ID_FULL="+strings.TrimSuffix(service, ".docker"), "+")
+			} else {
+				args = append(args, "_SYSTEMD_UNIT="+service, "+")
+			}
 		}
-		args = append(args, "-f", "-n", "100", "-o", "json")
+		if args[len(args)-1] == "+" {
+			args = args[:len(args)-1]
+		}
+		args = append(args, "--all", "-f", "-n", "100", "-o", "json")
 
 		cmd := exec.Command("journalctl", args...)
 		stdout, _ := cmd.StdoutPipe()

@@ -85,8 +85,8 @@
           if (!line.startsWith('UNIT')) {
             const serviceName = line.split(' ')[0];
             const option = document.createElement('option');
-            option.value = serviceName.split('.')[0];
-            option.innerText = serviceName;
+            option.value = serviceName;
+            option.innerText = (line.match(/ human-name=([^ ]+)$/) || ["", serviceName])[1];
             select.appendChild(option)
           }
         }
@@ -124,7 +124,7 @@
           const message = document.createElement('td');
 
           pid.innerText = incomingMessage._PID;
-          systemdUnit.innerText = incomingMessage._SYSTEMD_UNIT;
+          systemdUnit.innerText = incomingMessage.CONTAINER_NAME ? incomingMessage.CONTAINER_NAME + ".docker" : incomingMessage._SYSTEMD_UNIT;
           realtimeTimestamp.innerText = new Date(incomingMessage.__REALTIME_TIMESTAMP/1000).toISOString();
           message.innerText = incomingMessage.MESSAGE;
           message.classList.add("is-message");
