@@ -66,9 +66,12 @@
       </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/ansi_up@5.1.0/ansi_up.js"></script>
     <script>
 
       let socket = null;
+
+      const ansi_up = new AnsiUp;
 
       const select = document.querySelector('select');
       const table = document.querySelector('table>tbody');
@@ -126,7 +129,8 @@
           pid.innerText = incomingMessage._PID;
           systemdUnit.innerText = incomingMessage.CONTAINER_NAME ? incomingMessage.CONTAINER_NAME + ".docker" : incomingMessage._SYSTEMD_UNIT;
           realtimeTimestamp.innerText = new Date(incomingMessage.__REALTIME_TIMESTAMP/1000).toISOString();
-          message.innerText = incomingMessage.MESSAGE;
+          const text = typeof incomingMessage.MESSAGE == "string" ? incomingMessage.MESSAGE : new TextDecoder("utf-8").decode(Uint8Array.from(incomingMessage.MESSAGE));;
+          message.innerHTML = ansi_up.ansi_to_html(text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"));
           message.classList.add("is-message");
           message.classList.add("is-family-monospace");
 
