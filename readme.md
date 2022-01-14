@@ -6,9 +6,11 @@ This app exposes your systemd logs to web via web interface.
 - When you load the page all available running services are listed in dropdown.
 - You can switch between them and previous logs are still being preserved.
 - Once you switch to another service you will stop receiving updates from the previous one.
+- **[FORK]** You can now select multiple services
+- **[FORK]** ANSI escape sequences also work
+- **[FORK]** Docker containers are services as well (when using the journald logging driver)
 
-
-![Screencast](https://user-images.githubusercontent.com/296714/111937816-df564f80-8ac8-11eb-82f3-d988a720f17a.gif)
+![Screenshot](https://user-images.githubusercontent.com/5559994/149535084-a3c894a9-2abd-40e5-8149-5f2480e56f7f.png)
 
 ## Usage
 
