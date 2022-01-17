@@ -81,6 +81,8 @@
         const servicesRequest = await fetch('list-services');
         const servicesList = await servicesRequest.text();
 
+        const services = [];
+
         for (let line of servicesList.split('\n')) {
           line = line.trim();
           if (line === '') break;
@@ -90,9 +92,11 @@
             const option = document.createElement('option');
             option.value = serviceName;
             option.innerText = (line.match(/ human-name=([^ ]+)$/) || ["", serviceName])[1];
-            select.appendChild(option)
+            services.push(option);
           }
         }
+        services.sort((a, b) => a.innerText.localeCompare(b.innerText));
+        services.forEach(s => select.appendChild(s));
 
         selectAll();
         startListeningToService();
