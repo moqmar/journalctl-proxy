@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"embed"
 	"encoding/json"
 	"flag"
@@ -115,7 +116,13 @@ func main() {
 		}
 		args = append(args, "--all", "-f", "-n", "100", "-o", "json")
 
-		cmd := exec.Command("journalctl", args...)
+
+		ctx, cancel := context.WithCancel(context.Background())
+		c.SetCloseHandler(func(code int, text string) error {
+			cancel()
+			return nil
+		})
+		cmd := exec.CommandContext(ctx, "journalctl", args...)
 		stdout, _ := cmd.StdoutPipe()
 		cmd.Start()
 
@@ -123,7 +130,8 @@ func main() {
 		for scanner.Scan() {
 			message = []byte(scanner.Text())
 			if err = c.WriteMessage(messageType, message); err != nil {
-				log.Println(err)
+				c.Close()
+				cancel()
 			}
 		}
 
