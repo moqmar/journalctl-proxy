@@ -1,4 +1,4 @@
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 dev:
 	find -type f \( -name "*.go" \) | entr -r go run *.go
