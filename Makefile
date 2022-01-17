@@ -3,11 +3,8 @@ VERSION = "1.0.0"
 dev:
 	find -type f \( -name "*.go" \) | entr -r go run *.go
 
-build: clean-build embed-assets amd64 arm
+build: clean-build amd64 arm
 	@echo "Building amd64 and arm version"
-
-embed-assets:
-	go-bindata assets/...
 
 clean-build:
 	- rm release -Rf
